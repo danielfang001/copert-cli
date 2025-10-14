@@ -7,9 +7,20 @@ from copert.tools.search import grep, glob
 from copert.tools.execution import bash
 from copert.tools.task_management import todowrite
 from copert.tools.web import webfetch, websearch
+from copert.tools.task import task
 from copert.tools.base import ToolResult, handle_tool_error
 
-# List of all available tools
+# Read-only tools for sub-agents (no write/edit/bash/todowrite/task)
+READ_ONLY_TOOLS = [
+    read_file,
+    ls,
+    grep,
+    glob,
+    webfetch,
+    websearch,
+]
+
+# List of all available tools for main agent
 ALL_TOOLS = [
     read_file,
     write_file,
@@ -22,6 +33,7 @@ ALL_TOOLS = [
     todowrite,
     webfetch,
     websearch,
+    task,
 ]
 
 __all__ = [
@@ -36,7 +48,9 @@ __all__ = [
     "todowrite",
     "webfetch",
     "websearch",
+    "task",
     "ALL_TOOLS",
+    "READ_ONLY_TOOLS",
     "ToolResult",
     "handle_tool_error",
 ]

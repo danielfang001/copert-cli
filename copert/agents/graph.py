@@ -1,6 +1,6 @@
 """LangGraph state graph for the Copert agent."""
 
-from typing import Literal
+from typing import Literal, List, Optional
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
@@ -10,7 +10,7 @@ from copert.llm import create_llm, COPERT_SYSTEM_PROMPT
 from copert.tools import ALL_TOOLS
 
 
-def create_agent_graph():
+def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List] = None):
     """Create and compile the LangGraph agent graph.
 
     The graph follows the Claude Code pattern:
@@ -22,12 +22,22 @@ def create_agent_graph():
     Note: AIMessage can contain both text content and tool_calls.
     When tool_calls are present, we route to tools regardless of content.
 
+    Args:
+        system_prompt: Optional custom system prompt (defaults to COPERT_SYSTEM_PROMPT)
+        tools: Optional custom tool list (defaults to ALL_TOOLS)
+
     Returns:
         Compiled StateGraph ready for invocation
     """
+    # Use defaults if not provided
+    if system_prompt is None:
+        system_prompt = COPERT_SYSTEM_PROMPT
+    if tools is None:
+        tools = ALL_TOOLS
+
     # Initialize LLM with tools
     llm_client = create_llm()
-    llm_with_tools = llm_client.bind_tools(ALL_TOOLS)
+    llm_with_tools = llm_client.bind_tools(tools)
 
     # Define the agent node
     def agent_node(state: AgentState) -> AgentState:
@@ -48,7 +58,7 @@ def create_agent_graph():
 
         # Add system prompt if this is the first interaction
         if not any(isinstance(msg, SystemMessage) for msg in messages):
-            messages = [SystemMessage(content=COPERT_SYSTEM_PROMPT)] + messages
+            messages = [SystemMessage(content=system_prompt)] + messages
 
         # Invoke LLM with tools
         response = llm_with_tools.invoke(messages)
@@ -56,7 +66,7 @@ def create_agent_graph():
         return {"messages": [response]}
 
     # ToolNode automatically handles tool execution and returns ToolMessage objects
-    tool_node = ToolNode(ALL_TOOLS)
+    tool_node = ToolNode(tools)
 
     def should_continue(state: AgentState) -> Literal["tools", "end"]:
         """Determine if we should continue to tools or end the conversation.

@@ -18,6 +18,22 @@ Copert is a command-line coding assistant that helps you with software engineeri
 
 ## Installation
 
+### Prerequisites
+
+Copert requires ripgrep for code search functionality:
+
+```bash
+# macOS
+brew install ripgrep
+
+# Linux
+apt install ripgrep    # Debian/Ubuntu
+yum install ripgrep    # RedHat/CentOS
+
+# Windows
+choco install ripgrep
+```
+
 ### Global Installation (Recommended)
 
 Install Copert CLI globally to use from any directory:
@@ -196,6 +212,76 @@ copert-cli/
 ### Web Tools
 10. **webfetch**: Fetch and process web content
 11. **websearch**: Search the web using Exa API
+
+### Sub-Agent Delegation
+12. **task**: Delegate complex tasks to specialized sub-agents
+
+## Sub-Agent System
+
+Copert implements a multi-agent architecture where the main agent can delegate complex, multi-step tasks to specialized sub-agents. This keeps the main conversation focused while allowing thorough, autonomous research in isolated contexts.
+
+### How It Works
+
+```python
+# Main agent recognizes complex task and delegates:
+task(
+    description="Search API endpoints",
+    prompt="""
+    Search the entire codebase for all API endpoint definitions.
+    Look for FastAPI, Flask, and Django patterns.
+    Return a structured report organized by file.
+    """,
+    subagent_type="general-purpose"
+)
+```
+
+**Flow:**
+1. Main agent identifies a complex, multi-step task
+2. Spawns a specialized sub-agent with fresh context
+3. Sub-agent autonomously completes the task with read-only tools
+4. Sub-agent returns comprehensive final report
+5. Main agent processes report and continues
+
+### Available Sub-Agent Types
+
+#### general-purpose
+Research and analysis specialist for:
+- Complex codebase searches (multiple grep/glob operations)
+- Multi-file pattern analysis
+- Documentation research (webfetch/websearch)
+- Exhaustive file exploration
+
+**Tools:** read_file, ls, grep, glob, webfetch, websearch (read-only)
+
+### Benefits
+
+- **Context Efficiency**: Complex searches don't pollute main conversation context
+- **Specialization**: Sub-agents have optimized prompts for specific task types
+- **Safety**: Sub-agents have read-only access - cannot make changes
+- **Focus**: Main agent stays focused on high-level planning and decision-making
+- **Scalability**: Easy to add more specialized sub-agent types
+
+### When Sub-Agents Are Used
+
+The main agent automatically delegates to sub-agents when:
+- Task requires multiple search/grep rounds across many files
+- Extensive file exploration without knowing exact locations
+- Pattern analysis across the entire codebase
+- Research requiring multiple web searches and documentation fetches
+
+### Architecture
+
+```
+Main Agent (12 tools: read, write, edit, ls, multiedit, grep, glob, bash, todowrite, webfetch, websearch, task)
+     ↓
+  Delegates complex task via 'task' tool
+     ↓
+Sub-Agent (6 read-only tools: read, ls, grep, glob, webfetch, websearch)
+     ↓
+  Returns comprehensive report
+     ↓
+Main Agent continues with report findings
+```
 
 ## Development
 

@@ -183,6 +183,11 @@ Let's get started!
                                                     content = todo.get('content', 'Unknown task')
                                                     self.console.print(f"   {status_emoji} {i}. {content}")
                                                 self.console.print()
+                                            # Special formatting for task delegation tool
+                                            elif tool_name == 'task' and 'description' in args and 'subagent_type' in args:
+                                                description = args.get('description', 'Unknown task')
+                                                subagent_type = args.get('subagent_type', 'unknown')
+                                                self.console.print(f"\n[cyan]🤖 Delegating to {subagent_type} sub-agent:[/cyan] [bold]{description}[/bold]\n")
                                             else:
                                                 # Standard tool call display
                                                 self.console.print(f"\n[cyan]🔧 Using tool:[/cyan] [bold]{tool_name}[/bold]")

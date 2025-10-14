@@ -4,8 +4,7 @@ from copert.llm.client import CopertLLM, create_llm
 from copert.llm.prompts import (
     COPERT_SYSTEM_PROMPT,
     AGENT_PROMPT_TEMPLATE,
-    GENERAL_PURPOSE_AGENT_PROMPT,
-    TASK_DELEGATION_PROMPT,
+    GENERAL_PURPOSE_SUBAGENT_PROMPT,
 )
 
 __all__ = [
@@ -13,6 +12,5 @@ __all__ = [
     "create_llm",
     "COPERT_SYSTEM_PROMPT",
     "AGENT_PROMPT_TEMPLATE",
-    "GENERAL_PURPOSE_AGENT_PROMPT",
-    "TASK_DELEGATION_PROMPT",
+    "GENERAL_PURPOSE_SUBAGENT_PROMPT",
 ]
