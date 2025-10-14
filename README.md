@@ -74,7 +74,7 @@ Create a `.env.copert` file in your project directory (or working directory wher
 OPENAI_API_KEY=your_key_here
 LANGSMITH_API_KEY=your_langsmith_key
 EXA_API_KEY=your_exa_key
-OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_MODEL=gpt-4.1 # recommend using gpt-5 if you have are verified for api streaming
 OPENAI_TEMPERATURE=0.1
 OPENAI_MAX_TOKENS=4096
 MAX_ITERATIONS=25
