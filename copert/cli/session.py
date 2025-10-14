@@ -51,6 +51,7 @@ Your AI coding assistant. Type your message and press Enter to chat.
 **Commands:**
 - `/help` - Show this help message
 - `/clear` - Clear conversation history
+- `/list-agents` - List available agents
 - `/history` - Show conversation history
 - `/exit` or `/quit` - Exit the session
 - `Ctrl+D` - Exit the session
@@ -70,6 +71,7 @@ Let's get started!
 - `/help` - Show this help message
 - `/clear` - Clear conversation history
 - `/history` - Show conversation history
+- `/list-agents` - List available agents
 - `/exit` or `/quit` - Exit the session
 
 **Keyboard Shortcuts:**
@@ -106,6 +108,13 @@ Let's get started!
         self.graph = None  # Reset graph to clear state
         self.console.print("[yellow]Conversation history cleared.[/yellow]\n")
 
+    def list_agents(self):
+        """List available agents."""
+        self.console.print("[bold]Available Agents:[/bold]")
+        self.console.print("general-purpose: Read-only research")
+        self.console.print("code-writer: Code implementation")
+        self.console.print()
+
     def handle_command(self, user_input: str) -> bool:
         """Handle special commands.
 
@@ -131,6 +140,10 @@ Let's get started!
 
         if command == "/clear":
             self.clear_history()
+            return False
+
+        if command == "/list-agents":
+            self.list_agents()
             return False
 
         return False
@@ -163,7 +176,6 @@ Let's get started!
 
                                     # Display tool calls when agent decides to use tools
                                     if isinstance(message, AIMessage) and message.tool_calls:
-                                        # Temporarily stop status to print tool info
                                         status.stop()
 
                                         for tool_call in message.tool_calls:

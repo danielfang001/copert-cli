@@ -253,34 +253,80 @@ Research and analysis specialist for:
 
 **Tools:** read_file, ls, grep, glob, webfetch, websearch (read-only)
 
+#### code-writer
+Code implementation specialist for:
+- Implementing features across multiple files
+- Bulk refactoring operations
+- Applying fixes/patterns to many files
+- Code generation with specific requirements
+
+**Tools:** read_file, write_file, edit_file, multiedit, ls, grep, glob (write access, no execution)
+
 ### Benefits
 
-- **Context Efficiency**: Complex searches don't pollute main conversation context
-- **Specialization**: Sub-agents have optimized prompts for specific task types
-- **Safety**: Sub-agents have read-only access - cannot make changes
-- **Focus**: Main agent stays focused on high-level planning and decision-making
+- **Context Efficiency**: Complex operations don't pollute main conversation context
+- **Specialization**: Each sub-agent has optimized prompts and tool access for their domain
+- **Safety**:
+  - general-purpose: Read-only, cannot make changes
+  - code-writer: Can write but cannot execute (no bash), preventing destructive commands
+- **Separation of Concerns**: Research and implementation are isolated processes
+- **Parallel Execution**: Can delegate to multiple sub-agents simultaneously
+- **Focus**: Main agent stays focused on high-level planning and orchestration
 - **Scalability**: Easy to add more specialized sub-agent types
 
 ### When Sub-Agents Are Used
 
 The main agent automatically delegates to sub-agents when:
+
+**To general-purpose:**
 - Task requires multiple search/grep rounds across many files
 - Extensive file exploration without knowing exact locations
 - Pattern analysis across the entire codebase
 - Research requiring multiple web searches and documentation fetches
 
+**To code-writer:**
+- Implementing features that span multiple files
+- Bulk refactoring operations (e.g., "refactor all error handling to use ErrorService")
+- Applying fixes or patterns to many files
+- Code generation with specific structural requirements
+
 ### Architecture
 
 ```
-Main Agent (12 tools: read, write, edit, ls, multiedit, grep, glob, bash, todowrite, webfetch, websearch, task)
-     ↓
-  Delegates complex task via 'task' tool
-     ↓
-Sub-Agent (6 read-only tools: read, ls, grep, glob, webfetch, websearch)
-     ↓
-  Returns comprehensive report
-     ↓
-Main Agent continues with report findings
+Main Agent (12 tools)
+├─ Full access: read, write, edit, ls, multiedit, grep, glob, bash, todowrite, webfetch, websearch, task
+│
+├─ Delegates research via 'task' tool
+│  ↓
+│  general-purpose Sub-Agent (6 read-only tools)
+│  ├─ read_file, ls, grep, glob, webfetch, websearch
+│  └─ Returns: Research report
+│
+├─ Delegates implementation via 'task' tool
+│  ↓
+│  code-writer Sub-Agent (7 write tools, no execution)
+│  ├─ read_file, write_file, edit_file, multiedit, ls, grep, glob
+│  └─ Returns: Implementation report
+│
+└─ Processes reports and responds to user
+```
+
+### Typical Workflow Example
+
+```
+User: "Refactor all database queries to use async/await"
+
+Main Agent:
+1. 🤖 Delegates to general-purpose:
+   "Search for all sync database query patterns"
+   → Report: 15 files with sync queries found
+
+2. 🤖 Delegates to code-writer:
+   "Refactor these 15 files to async/await,
+    following the pattern in examples/async-query.ts"
+   → Report: 15 files updated with changes listed
+
+3. 📝 Main agent summarizes to user and suggests running tests
 ```
 
 ## Development

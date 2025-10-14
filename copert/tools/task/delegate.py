@@ -10,7 +10,7 @@ class TaskInput(BaseModel):
 
     description: str = Field(description="A short (3-5 word) description of the task")
     prompt: str = Field(description="The task for the agent to perform. Be detailed and specific about what you want the sub-agent to do and what information to return.")
-    subagent_type: str = Field(description="The type of specialized agent to use for this task. Currently supported: 'general-purpose'")
+    subagent_type: str = Field(description="The type of specialized agent to use for this task. Currently supported: 'general-purpose', 'code-writer'")
 
 
 @tool(args_schema=TaskInput)
@@ -21,21 +21,24 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     like extensive codebase searches, multi-file analysis, or research tasks.
 
     Available agent types:
-    - **general-purpose**: General-purpose agent for researching complex questions, searching
-      for code, and executing multi-step tasks. Has read-only access (read_file, ls, grep,
-      glob, webfetch, websearch).
+    - **general-purpose**: Research and analysis specialist with read-only access.
+      Tools: read_file, ls, grep, glob, webfetch, websearch
+      Use for: Codebase searches, pattern analysis, documentation research
+
+    - **code-writer**: Code implementation specialist with write access but no execution.
+      Tools: read_file, write_file, edit_file, multiedit, ls, grep, glob
+      Use for: Implementing changes across multiple files, refactoring, code generation
 
     When to use this tool:
-    - Task requires multiple search/grep operations across many files
-    - Need to analyze patterns across the codebase
-    - Extensive file exploration without knowing exact locations
-    - Research tasks requiring web searches and documentation fetching
+    - **general-purpose**: Multiple search operations, pattern analysis, research
+    - **code-writer**: Implementing features, bulk refactoring, multi-file changes
+    - Task requires isolation to prevent context pollution
+    - Complex multi-step operations that benefit from specialization
 
     When NOT to use this tool:
-    - Reading a specific known file path (use read_file instead)
-    - Searching for a specific class definition (use glob/grep instead)
-    - Searching within 2-3 known files (use read_file instead)
-    - Any task requiring write/edit operations (handle directly)
+    - Reading 1-3 specific known files (use read_file instead)
+    - Simple single-file edits (use edit_file directly)
+    - Tasks requiring test execution or verification (handle in main agent)
 
     Important notes:
     - Sub-agent starts with fresh context (not burdened by conversation history)
@@ -78,11 +81,11 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     """
     # Import here to avoid circular dependency
     from copert.agents.graph import create_agent_graph
-    from copert.llm.prompts import GENERAL_PURPOSE_SUBAGENT_PROMPT
-    from copert.tools import READ_ONLY_TOOLS
+    from copert.llm.prompts import GENERAL_PURPOSE_SUBAGENT_PROMPT, CODE_WRITER_SUBAGENT_PROMPT
+    from copert.tools import READ_ONLY_TOOLS, CODE_WRITER_TOOLS
 
     # Validate subagent_type
-    valid_types = ["general-purpose"]
+    valid_types = ["general-purpose", "code-writer"]
     if subagent_type not in valid_types:
         return f"Error: Invalid subagent_type '{subagent_type}'. Valid types: {', '.join(valid_types)}"
 
@@ -90,6 +93,9 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     if subagent_type == "general-purpose":
         system_prompt = GENERAL_PURPOSE_SUBAGENT_PROMPT
         tools = READ_ONLY_TOOLS
+    elif subagent_type == "code-writer":
+        system_prompt = CODE_WRITER_SUBAGENT_PROMPT
+        tools = CODE_WRITER_TOOLS
     else:
         return f"Error: Subagent type '{subagent_type}' not implemented"
 

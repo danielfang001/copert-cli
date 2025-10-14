@@ -15,6 +15,7 @@ def edit_file(file_path: str, old_string: str, new_string: str, replace_all: boo
 
     IMPORTANT: Use relative paths for project files (e.g., "src/main.py", "tests/test.py").
     The tool will automatically convert relative paths to absolute paths based on the current working directory.
+    When using this tool to remove chunks of code, be aware of surrounding context and associated comments.
 
     Args:
         file_path: Path to the file to modify (relative to current directory, e.g., "src/main.py")
