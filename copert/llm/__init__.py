@@ -1,0 +1,18 @@
+"""LLM integration module."""
+
+from copert.llm.client import CopertLLM, create_llm
+from copert.llm.prompts import (
+    COPERT_SYSTEM_PROMPT,
+    AGENT_PROMPT_TEMPLATE,
+    GENERAL_PURPOSE_AGENT_PROMPT,
+    TASK_DELEGATION_PROMPT,
+)
+
+__all__ = [
+    "CopertLLM",
+    "create_llm",
+    "COPERT_SYSTEM_PROMPT",
+    "AGENT_PROMPT_TEMPLATE",
+    "GENERAL_PURPOSE_AGENT_PROMPT",
+    "TASK_DELEGATION_PROMPT",
+]
