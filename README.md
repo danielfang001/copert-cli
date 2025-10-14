@@ -24,7 +24,7 @@ Install Copert CLI globally to use from any directory:
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone git@github.com:danielfang001/copert-cli.git
 cd copert-cli
 
 # Install globally with uv tool
@@ -43,7 +43,7 @@ Now you can use `copert` from anywhere!
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone git@github.com:danielfang001/copert-cli.git
 cd copert-cli
 
 # Install dependencies with uv
