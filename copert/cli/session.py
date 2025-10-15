@@ -13,10 +13,11 @@ from copert.config import settings
 
 from copert.agents import create_agent_graph
 from copert import __version__
+from copert.utils import ApprovalManager
 
 client = ls.Client(
-    api_key=settings.langsmith_api_key,  
-    api_url="https://api.smith.langchain.com", 
+    api_key=settings.langsmith_api_key,
+    api_url="https://api.smith.langchain.com",
 )
 
 class CopertSession:
@@ -29,6 +30,25 @@ class CopertSession:
         self.session = PromptSession(history=self.history)
         self.messages: List[BaseMessage] = []
         self.graph = None  # Lazy load on first use
+        self.auto_approve = False  # Session-level auto-approve setting
+        self.current_status = None  # Track current status spinner
+
+        # Initialize approval manager
+        self.approval_manager = ApprovalManager(
+            console=self.console,
+            prompt_session=self.session,
+            auto_approve=self.auto_approve
+        )
+
+        # Set status control callback for approval manager
+        def status_control(start: bool):
+            if self.current_status:
+                if start:
+                    self.current_status.start()
+                else:
+                    self.current_status.stop()
+
+        self.approval_manager.set_status_callback(status_control)
 
         # Custom prompt style
         self.prompt_style = Style.from_dict({
@@ -38,7 +58,7 @@ class CopertSession:
     def _get_graph(self):
         """Lazy load the agent graph."""
         if self.graph is None:
-            self.graph = create_agent_graph()
+            self.graph = create_agent_graph(approval_manager=self.approval_manager)
         return self.graph
 
     def display_welcome(self):
@@ -52,6 +72,7 @@ Your AI coding assistant. Type your message and press Enter to chat.
 - `/help` - Show this help message
 - `/clear` - Clear conversation history
 - `/list-agents` - List available agents
+- `/approve [on|off]` - Toggle auto-approve mode for file changes
 - `/history` - Show conversation history
 - `/exit` or `/quit` - Exit the session
 - `Ctrl+D` - Exit the session
@@ -72,6 +93,7 @@ Let's get started!
 - `/clear` - Clear conversation history
 - `/history` - Show conversation history
 - `/list-agents` - List available agents
+- `/approve [on|off]` - Toggle auto-approve mode for file changes
 - `/exit` or `/quit` - Exit the session
 
 **Keyboard Shortcuts:**
@@ -115,6 +137,23 @@ Let's get started!
         self.console.print("code-writer: Code implementation")
         self.console.print()
 
+    def toggle_auto_approve(self, mode: str = None):
+        """Toggle auto-approve mode."""
+        if mode == "on":
+            self.auto_approve = True
+            self.approval_manager.auto_approve = True
+            self.console.print("[yellow]⚠️  Auto-approve enabled - file changes will NOT require confirmation[/yellow]\n")
+        elif mode == "off":
+            self.auto_approve = False
+            self.approval_manager.auto_approve = False
+            self.console.print("[green]✓ Auto-approve disabled - file changes will require confirmation[/green]\n")
+        else:
+            # Toggle
+            self.auto_approve = not self.auto_approve
+            self.approval_manager.auto_approve = self.auto_approve
+            status = "enabled" if self.auto_approve else "disabled"
+            self.console.print(f"[yellow]Auto-approve {status}[/yellow]\n")
+
     def handle_command(self, user_input: str) -> bool:
         """Handle special commands.
 
@@ -146,6 +185,12 @@ Let's get started!
             self.list_agents()
             return False
 
+        if command.startswith("/approve"):
+            parts = command.split()
+            mode = parts[1] if len(parts) > 1 else None
+            self.toggle_auto_approve(mode)
+            return False
+
         return False
 
     def process_message(self, user_input: str):
@@ -163,6 +208,8 @@ Let's get started!
 
                 # Show thinking indicator while streaming
                 with self.console.status("[bold green]Coperting...\n", spinner="dots") as status:
+                    # Store status reference for approval manager
+                    self.current_status = status
                     # Stream the graph execution to display tool calls in real-time
                     # Using stream_mode="updates" to get complete messages per node
                     for chunk in graph.stream({"messages": self.messages}, stream_mode="updates"):
@@ -235,6 +282,9 @@ Let's get started!
 
                                         # Resume status
                                         status.start()
+
+                # Clear status reference
+                self.current_status = None
 
                 # Get the last AI message (final response)
                 last_message = self.messages[-1]

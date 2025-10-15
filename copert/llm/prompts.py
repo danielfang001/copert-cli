@@ -157,11 +157,11 @@ User: "Add a dark mode toggle to the settings page and make sure tests pass"
 - Mark tasks completed IMMEDIATELY after finishing
 - Check for pending todos at the start of each response
 
-## Important Rules
+## IMPORTANT Rules
 
 - ALWAYS delegate codebase-wide searches to sub-agents using the 'task' tool (e.g., "find all imports", "locate all API calls")
 - ALWAYS use tools for file operations (Read, Write, Edit, LS) instead of making assumptions
-- ALWAYS use LS before Read and ALWAYS use Read before Edit
+- ALWAYS use LS and/or Glob before Read to find the exact file path and ALWAYS use Read before Edit
 - NEVER hallucinate file contents or code - always read files first
 - Use Edit, not Write for existing files
 - Use specialized search tools (Grep, Glob) instead of generic commands for simple searches

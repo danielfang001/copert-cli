@@ -1,16 +1,17 @@
 """LangGraph state graph for the Copert agent."""
 
 from typing import Literal, List, Optional
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 from copert.state.conversation import AgentState
 from copert.llm import create_llm, COPERT_SYSTEM_PROMPT
 from copert.tools import ALL_TOOLS
+from copert.utils import ApprovalManager
 
 
-def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List] = None):
+def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List] = None, approval_manager: Optional[ApprovalManager] = None):
     """Create and compile the LangGraph agent graph.
 
     The graph follows the Claude Code pattern:
@@ -24,7 +25,8 @@ def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List
 
     Args:
         system_prompt: Optional custom system prompt (defaults to COPERT_SYSTEM_PROMPT)
-        tools: Optional custom tool list (defaults to ALL_TOOLS)
+        tools: Optional custom tool list of the main agent (defaults to ALL_TOOLS)
+        approval_manager: Optional ApprovalManager for approving destructive operations
 
     Returns:
         Compiled StateGraph ready for invocation
@@ -65,8 +67,80 @@ def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List
 
         return {"messages": [response]}
 
-    # ToolNode automatically handles tool execution and returns ToolMessage objects
-    tool_node = ToolNode(tools)
+    # Create custom tool node with approval support if approval_manager is provided
+    if approval_manager:
+        def approval_tool_node(state: AgentState) -> AgentState:
+            """Custom tool node that requests approval before executing destructive operations.
+
+            Args:
+                state: Current agent state containing messages
+
+            Returns:
+                Updated state with ToolMessage results
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
+                return {"messages": []}
+
+            # Process each tool call with approval check
+            tool_messages = []
+            tools_by_name = {tool.name: tool for tool in tools}
+
+            for tool_call in last_message.tool_calls:
+                tool_name = tool_call.get("name")
+                tool_args = tool_call.get("args", {})
+                tool_id = tool_call.get("id")
+
+                # Request approval
+                approved = approval_manager.request_approval(tool_name, tool_args)
+
+                if approved:
+                    # Execute the tool
+                    tool = tools_by_name.get(tool_name)
+                    if tool:
+                        try:
+                            result = tool.invoke(tool_args)
+                            tool_messages.append(
+                                ToolMessage(
+                                    content=str(result),
+                                    name=tool_name,
+                                    tool_call_id=tool_id,
+                                )
+                            )
+                        except Exception as e:
+                            tool_messages.append(
+                                ToolMessage(
+                                    content=f"Error: {str(e)}",
+                                    name=tool_name,
+                                    tool_call_id=tool_id,
+                                )
+                            )
+                    else:
+                        tool_messages.append(
+                            ToolMessage(
+                                content=f"Error: Tool '{tool_name}' not found",
+                                name=tool_name,
+                                tool_call_id=tool_id,
+                            )
+                        )
+                else:
+                    # User rejected the operation
+                    tool_messages.append(
+                        ToolMessage(
+                            content=f"Operation rejected by user",
+                            name=tool_name,
+                            tool_call_id=tool_id,
+                        )
+                    )
+
+            return {"messages": tool_messages}
+
+        tool_node_func = approval_tool_node
+    else:
+        # Use standard ToolNode if no approval manager
+        tool_node_func = ToolNode(tools)
 
     def should_continue(state: AgentState) -> Literal["tools", "end"]:
         """Determine if we should continue to tools or end the conversation.
@@ -94,7 +168,7 @@ def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List
     workflow = StateGraph(AgentState)
 
     workflow.add_node("agent", agent_node)
-    workflow.add_node("tools", tool_node)
+    workflow.add_node("tools", tool_node_func)
 
     workflow.set_entry_point("agent")
 
