@@ -9,7 +9,7 @@ from langchain_core.tools import tool
 def bash(command: str, timeout: Optional[int] = 120000, description: Optional[str] = None) -> str:
     """Execute a bash command in a persistent shell session with optional timeout.
 
-    IMPORTANT: This tool is for terminal operations like git, npm, docker, etc.
+    IMPORTANT: This tool is for terminal operations like uv, mkdir, git, npm, docker, etc.
     DO NOT use it for file operations (reading, writing, editing, searching) - use specialized tools instead.
 
     Before executing:

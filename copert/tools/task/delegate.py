@@ -2,6 +2,7 @@
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
+from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel, Field
 
 
@@ -28,6 +29,10 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     - **code-writer**: Code implementation specialist with write access but no execution.
       Tools: read_file, write_file, edit_file, multiedit, ls, grep, glob
       Use for: Implementing changes across multiple files, refactoring, code generation
+
+    - **project-init**: Project initialization specialist for creating COPERT.md files.
+      Tools: read_file, write_file, ls, grep, glob
+      Use for: Analyzing codebase and generating context files (internal use only)
 
     When to use this tool:
     - **general-purpose**: Multiple search operations, pattern analysis, research
@@ -81,11 +86,11 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     """
     # Import here to avoid circular dependency
     from copert.agents.graph import create_agent_graph
-    from copert.llm.prompts import GENERAL_PURPOSE_SUBAGENT_PROMPT, CODE_WRITER_SUBAGENT_PROMPT
-    from copert.tools import READ_ONLY_TOOLS, CODE_WRITER_TOOLS
+    from copert.llm.prompts import GENERAL_PURPOSE_SUBAGENT_PROMPT, CODE_WRITER_SUBAGENT_PROMPT, PROJECT_INIT_SUBAGENT_PROMPT
+    from copert.tools import READ_ONLY_TOOLS, CODE_WRITER_TOOLS, PROJECT_INIT_TOOLS
 
     # Validate subagent_type
-    valid_types = ["general-purpose", "code-writer"]
+    valid_types = ["general-purpose", "code-writer", "project-init"]
     if subagent_type not in valid_types:
         return f"Error: Invalid subagent_type '{subagent_type}'. Valid types: {', '.join(valid_types)}"
 
@@ -96,6 +101,9 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
     elif subagent_type == "code-writer":
         system_prompt = CODE_WRITER_SUBAGENT_PROMPT
         tools = CODE_WRITER_TOOLS
+    elif subagent_type == "project-init":
+        system_prompt = PROJECT_INIT_SUBAGENT_PROMPT
+        tools = PROJECT_INIT_TOOLS
     else:
         return f"Error: Subagent type '{subagent_type}' not implemented"
 
@@ -110,7 +118,11 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
         messages = [HumanMessage(content=prompt)]
 
         # Invoke sub-agent and wait for completion
-        result = subagent_graph.invoke({"messages": messages})
+        # Add recursion limit to prevent infinite loops (max 50 agent-tool cycles)
+        result = subagent_graph.invoke(
+            {"messages": messages},
+            config={"recursion_limit": 50}
+        )
 
         # Extract final AI response
         final_messages = result["messages"]
@@ -122,5 +134,27 @@ def task(description: str, prompt: str, subagent_type: str) -> str:
 
         return "Error: Sub-agent did not return a final report"
 
+    except GraphRecursionError as e:
+        # LangGraph's specific recursion error when graph exceeds iteration limit
+        return (
+            "Error: Sub-agent exceeded maximum iterations (50 steps).\n\n"
+            "This means the task was too broad or the agent kept using tools without finishing.\n\n"
+            "To fix this, try:\n"
+            "- Break the task into smaller, more specific sub-tasks\n"
+            "- Be more specific about what files/directories to search\n"
+            "- Limit the scope of analysis (e.g., 'search only in src/' instead of 'scan entire codebase')\n"
+            "- Do targeted searches yourself with specific grep/glob calls\n\n"
+            "Example of a better prompt:\n"
+            "  'Use grep to find files containing VectorStore class, then read the top 3 results'\n"
+            "Instead of:\n"
+            "  'Scan the codebase and analyze everything'"
+        )
+    except RecursionError as e:
+        # Python's built-in recursion error (less common but possible)
+        return (
+            "Error: Python recursion limit hit (call stack too deep).\n"
+            "The task caused too many nested function calls.\n"
+            "Try simplifying the task or breaking it into smaller pieces."
+        )
     except Exception as e:
         return f"Error executing sub-agent: {type(e).__name__}: {str(e)}"

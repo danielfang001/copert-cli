@@ -82,6 +82,39 @@ MAX_ITERATIONS=25
 
 **Note:** Copert uses `.env.copert` instead of `.env` to avoid conflicts with your project's environment variables.
 
+## Project Memory (COPERT.md) (You know where this is from)
+
+Copert supports project-specific context files similar to Claude Code's CLAUDE.md feature. When you have a `COPERT.md` file in your project directory, Copert automatically loads it into the session context to provide better, project-aware assistance.
+
+### Creating COPERT.md
+
+Use the `/init` command to automatically generate a COPERT.md file:
+
+```bash
+$ copert
+You: /init
+```
+
+The init command spawns a specialized sub-agent that:
+1. Reads your README.md and dependency files (pyproject.toml, package.json, etc.)
+2. Analyzes your project architecture
+3. Creates a comprehensive COPERT.md file with:
+   - Common development commands (build, test, lint)
+   - High-level architecture and patterns
+   - Important implementation details
+
+### How It Works
+
+- **Automatic Loading**: COPERT.md is automatically loaded when you start a Copert session
+- **Context Efficiency**: Offloads token-heavy project context from conversation history
+- **Better Assistance**: Copert uses this context to provide more accurate, project-specific help
+
+### When to Use
+
+- First time setting up Copert in a new project
+- After major architectural changes
+- To help Copert understand your project's conventions and patterns
+
 ## Usage
 
 ### Interactive Mode (Default)
@@ -116,6 +149,7 @@ Goodbye!
 
 **Session Commands:**
 - `/help` - Show help message
+- `/init` - Initialize project with COPERT.md guide file
 - `/clear` - Clear conversation history
 - `/history` - Show conversation history
 - `/exit` or `/quit` - Exit session
@@ -341,6 +375,10 @@ uv run ruff format .
 # Type check
 uv run mypy copert/
 ```
+
+## Notes
+
+Learned a lot from the context engineering talk from langchain and manus.
 
 ## License
 

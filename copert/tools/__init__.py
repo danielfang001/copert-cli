@@ -8,6 +8,7 @@ from copert.tools.execution import bash
 from copert.tools.task_management import todowrite
 from copert.tools.web import webfetch, websearch
 from copert.tools.task import task
+from copert.tools.project import init, write_copert_md, read_copert_md
 from copert.tools.base import ToolResult, handle_tool_error
 
 # Read-only tools for general-purpose sub-agent (research and analysis)
@@ -31,6 +32,17 @@ CODE_WRITER_TOOLS = [
     glob,
 ]
 
+# Project initialization tools for project-init sub-agent (read, write, search - no execution)
+PROJECT_INIT_TOOLS = [
+    read_file,
+    write_file,
+    ls,
+    grep,
+    glob,
+    write_copert_md,  # Dedicated tool for writing COPERT.md to project root
+    read_copert_md,   # Dedicated tool for reading existing COPERT.md
+]
+
 # List of all available tools for main agent
 ALL_TOOLS = [
     read_file,
@@ -45,6 +57,7 @@ ALL_TOOLS = [
     webfetch,
     websearch,
     task,
+    init,
 ]
 
 __all__ = [
@@ -60,9 +73,11 @@ __all__ = [
     "webfetch",
     "websearch",
     "task",
+    "init",
     "ALL_TOOLS",
     "READ_ONLY_TOOLS",
     "CODE_WRITER_TOOLS",
+    "PROJECT_INIT_TOOLS",
     "ToolResult",
     "handle_tool_error",
 ]

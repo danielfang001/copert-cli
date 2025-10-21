@@ -70,6 +70,7 @@ Your AI coding assistant. Type your message and press Enter to chat.
 
 **Commands:**
 - `/help` - Show this help message
+- `/init` - Initialize project with COPERT.md guide
 - `/clear` - Clear conversation history
 - `/list-agents` - List available agents
 - `/approve [on|off]` - Toggle auto-approve mode for file changes
@@ -90,6 +91,7 @@ Let's get started!
 
 **Available Commands:**
 - `/help` - Show this help message
+- `/init` - Initialize project with COPERT.md guide
 - `/clear` - Clear conversation history
 - `/history` - Show conversation history
 - `/list-agents` - List available agents
@@ -154,6 +156,21 @@ Let's get started!
             status = "enabled" if self.auto_approve else "disabled"
             self.console.print(f"[yellow]Auto-approve {status}[/yellow]\n")
 
+    def run_init(self):
+        """Run the project initialization to create COPERT.md."""
+        from copert.tools.project import init
+
+        self.console.print("[cyan]🚀 Initializing project...[/cyan]\n")
+
+        with self.console.status("[bold green]Analyzing codebase and creating COPERT.md...", spinner="dots"):
+            # Wrap in LangSmith tracing context so sub-agent invocations are tracked
+            with ls.tracing_context(client=client, project_name="copert-cli", enabled=True):
+                try:
+                    result = init.invoke({})  # call tool directly, tool would invoke subagent
+                    self.console.print(f"\n{result}\n")
+                except Exception as e:
+                    self.console.print(f"\n[bold red]Error:[/bold red] {str(e)}\n")
+
     def handle_command(self, user_input: str) -> bool:
         """Handle special commands.
 
@@ -189,6 +206,10 @@ Let's get started!
             parts = command.split()
             mode = parts[1] if len(parts) > 1 else None
             self.toggle_auto_approve(mode)
+            return False
+
+        if command == "/init":
+            self.run_init()
             return False
 
         return False

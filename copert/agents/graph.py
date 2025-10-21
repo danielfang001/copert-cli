@@ -8,11 +8,11 @@ from langgraph.prebuilt import ToolNode
 from copert.state.conversation import AgentState
 from copert.llm import create_llm, COPERT_SYSTEM_PROMPT
 from copert.tools import ALL_TOOLS
-from copert.utils import ApprovalManager
+from copert.utils import ApprovalManager, load_copert_md, format_copert_context
 
 
 def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List] = None, approval_manager: Optional[ApprovalManager] = None):
-    """Create and compile the LangGraph agent graph.
+    """Create and compile the LangGraph agent graph. Auto compiles COPERT.md into system prompt.
 
     The graph follows the Claude Code pattern:
     1. User message → agent
@@ -36,6 +36,12 @@ def create_agent_graph(system_prompt: Optional[str] = None, tools: Optional[List
         system_prompt = COPERT_SYSTEM_PROMPT
     if tools is None:
         tools = ALL_TOOLS
+
+    # Load COPERT.md if it exists and append to system prompt
+    # This mimics Claude Code's automatic CLAUDE.md loading
+    copert_content = load_copert_md()
+    if copert_content:
+        system_prompt = system_prompt + format_copert_context(copert_content)
 
     # Initialize LLM with tools
     llm_client = create_llm()
